@@ -1,0 +1,213 @@
+/*
+ * lcd.c
+ *
+ *  Created on: Feb 5, 2017
+ *      Author: gudozhni
+ */
+#include "wotch.h"
+#include "lcd.h"
+#include "digits.h"
+#include "menu.h"
+#include "font7x5.h"
+
+void lcd_put_digit(uint8_t dig, uint8_t pos, wotch_struct *wotch)
+{
+	for (uint8_t i=0;i<28;i++)
+	{
+		if (pos < 2)
+		{
+			wotch->lcd_frame_buffer[129+i+28*pos] = digits[dig*112+i];
+			wotch->lcd_frame_buffer[257+i+28*pos] = digits[dig*112+28+i];
+			wotch->lcd_frame_buffer[385+i+28*pos] = digits[dig*112+56+i];
+			wotch->lcd_frame_buffer[513+i+28*pos] = digits[dig*112+84+i];
+		}
+		else
+		{
+			wotch->lcd_frame_buffer[143+i+28*pos] = digits[dig*112+i];
+			wotch->lcd_frame_buffer[271+i+28*pos] = digits[dig*112+28+i];
+			wotch->lcd_frame_buffer[399+i+28*pos] = digits[dig*112+56+i];
+			wotch->lcd_frame_buffer[527+i+28*pos] = digits[dig*112+84+i];
+		};
+	};
+};
+
+void lcd_update_time(wotch_struct *wotch)
+{
+	for (uint8_t i=0;i<14;i++)
+	{
+	wotch->lcd_frame_buffer[185+i] = digits[1120+i];
+	wotch->lcd_frame_buffer[313+i] = digits[1134+i];
+	wotch->lcd_frame_buffer[441+i] = digits[1148+i];
+	wotch->lcd_frame_buffer[569+i] = digits[1162+i];
+	};
+	wotch->prev_time.bcd10hours = wotch->cur_time.bcd10hours;
+	lcd_put_digit(wotch->cur_time.bcd10hours,0,wotch);
+	wotch->prev_time.bcd1hours = wotch->cur_time.bcd1hours;
+	lcd_put_digit(wotch->cur_time.bcd1hours,1,wotch);
+	wotch->prev_time.bcd10minutes = wotch->cur_time.bcd10minutes;
+	lcd_put_digit(wotch->cur_time.bcd10minutes,2,wotch);
+	wotch->prev_time.bcd1minutes = wotch->cur_time.bcd1minutes;
+	lcd_put_digit(wotch->cur_time.bcd1minutes,3,wotch);
+};
+
+void lcd_write_menu_line(wotch_struct *wotch, MENU_line *ln,uint8_t position){
+	uint16_t temp = 128*(position+1)+8;
+
+	if (ln == NULL)
+	{
+		for (uint8_t i = 0; i<120;i++)
+		{
+			wotch->lcd_frame_buffer[temp+i]=0x00;
+		};
+	}
+	else
+	{
+		for (uint8_t i = 0; i<ln->length;i++)
+		{
+			uint8_t symb = ln->str[i] - 0x20;
+			for(uint8_t j = 0; j < 5; j++)
+			{
+				wotch->lcd_frame_buffer[temp+j]=font7x5[5*symb+j];
+			};
+			wotch->lcd_frame_buffer[temp+5]=0x00;
+			temp+=6;
+		};
+	}
+
+};
+
+void lcd_menu_arrow(wotch_struct *wotch,uint8_t pos){
+
+	for (uint8_t i=0;i<8;i++)
+	{
+		if (i==pos+1)
+		{
+			for (uint8_t j = 0; j < 5; j++)
+			wotch->lcd_frame_buffer[128*i+j] = font7x5[150+j];
+		}
+		else
+		{
+			for (uint8_t j = 0; j < 8; j++)
+			wotch->lcd_frame_buffer[128*i+j] = 0x00;
+		}
+	}
+};
+
+void lcd_draw_sec_bar(wotch_struct *wotch)
+{
+	for (uint8_t i = 2; i<126; i++)
+	{
+		if ((i==2)||(i==125))
+				wotch->lcd_frame_buffer[640+i]=0xff;
+		else
+			wotch->lcd_frame_buffer[640+i]=0x81;
+	};
+};
+void lcd_put_time_str(wotch_struct *wotch)
+{
+	uint8_t pos = wotch->current_menu->current_choice;
+	uint8_t temp = 3*128+40;
+	uint8_t symb = wotch->cur_time.bcd10hours + 0x10;
+	for(uint8_t j = 0; j < 5; j++)
+	{
+		if (pos==0)
+			wotch->lcd_frame_buffer[temp+j]= ~font7x5[5*symb+j];
+		else
+			wotch->lcd_frame_buffer[temp+j]=font7x5[5*symb+j];
+	};
+	wotch->lcd_frame_buffer[temp+5]=0x00;
+	temp+=6;
+	symb = wotch->cur_time.bcd1hours + 0x10;
+	for(uint8_t j = 0; j < 5; j++)
+	{
+		if (pos==1)
+			wotch->lcd_frame_buffer[temp+j]= ~font7x5[5*symb+j];
+		else
+			wotch->lcd_frame_buffer[temp+j]=font7x5[5*symb+j];
+	};
+	wotch->lcd_frame_buffer[temp+5]=0x00;
+	temp+=6;
+	symb = ':' - 0x20;
+		for(uint8_t j = 0; j < 5; j++)
+		{
+			wotch->lcd_frame_buffer[temp+j]=font7x5[5*symb+j];
+		};
+	wotch->lcd_frame_buffer[temp+5]=0x00;
+	temp+=6;
+	symb = wotch->cur_time.bcd10minutes + 0x10;
+	for(uint8_t j = 0; j < 5; j++)
+	{
+		if (pos==2)
+			wotch->lcd_frame_buffer[temp+j]= ~font7x5[5*symb+j];
+		else
+			wotch->lcd_frame_buffer[temp+j]=font7x5[5*symb+j];
+	};
+	wotch->lcd_frame_buffer[temp+5]=0x00;
+	temp+=6;
+	symb = wotch->cur_time.bcd1minutes + 0x10;
+		for(uint8_t j = 0; j < 5; j++)
+		{
+			if (pos==3)
+				wotch->lcd_frame_buffer[temp+j]= ~font7x5[5*symb+j];
+			else
+				wotch->lcd_frame_buffer[temp+j]=font7x5[5*symb+j];
+		};
+	wotch->lcd_frame_buffer[temp+5]=0x00;
+};
+
+void lcd_put_date_str(wotch_struct *wotch)
+{
+	uint8_t pos = wotch->current_menu->current_choice;
+	uint8_t temp = 3*128+40;
+	uint8_t symb = wotch->cur_time.bcd10hours + 0x10;
+	for(uint8_t j = 0; j < 5; j++)
+	{
+		if (pos==0)
+			wotch->lcd_frame_buffer[temp+j]= ~font7x5[5*symb+j];
+		else
+			wotch->lcd_frame_buffer[temp+j]=font7x5[5*symb+j];
+	};
+	wotch->lcd_frame_buffer[temp+5]=0x00;
+	temp+=6;
+	symb = wotch->cur_time.bcd1hours + 0x10;
+	for(uint8_t j = 0; j < 5; j++)
+	{
+		if (pos==1)
+			wotch->lcd_frame_buffer[temp+j]= ~font7x5[5*symb+j];
+		else
+			wotch->lcd_frame_buffer[temp+j]=font7x5[5*symb+j];
+	};
+	wotch->lcd_frame_buffer[temp+5]=0x00;
+	temp+=6;
+	symb = ':' - 0x20;
+		for(uint8_t j = 0; j < 5; j++)
+		{
+			wotch->lcd_frame_buffer[temp+j]=font7x5[5*symb+j];
+		};
+	wotch->lcd_frame_buffer[temp+5]=0x00;
+	temp+=6;
+	symb = wotch->cur_time.bcd10minutes + 0x10;
+	for(uint8_t j = 0; j < 5; j++)
+	{
+		if (pos==2)
+			wotch->lcd_frame_buffer[temp+j]= ~font7x5[5*symb+j];
+		else
+			wotch->lcd_frame_buffer[temp+j]=font7x5[5*symb+j];
+	};
+	wotch->lcd_frame_buffer[temp+5]=0x00;
+	temp+=6;
+	symb = wotch->cur_time.bcd1minutes + 0x10;
+		for(uint8_t j = 0; j < 5; j++)
+		{
+			if (pos==3)
+				wotch->lcd_frame_buffer[temp+j]= ~font7x5[5*symb+j];
+			else
+				wotch->lcd_frame_buffer[temp+j]=font7x5[5*symb+j];
+		};
+	wotch->lcd_frame_buffer[temp+5]=0x00;
+};
+
+void lcd_clear(wotch_struct *wotch)
+{
+	memset(wotch->lcd_frame_buffer,0,1024);
+};

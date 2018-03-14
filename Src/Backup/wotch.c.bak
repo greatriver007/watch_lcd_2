@@ -1,0 +1,306 @@
+/*
+ * wotch.c
+ *
+ *  Created on: Feb 3, 2017
+ *      Author: gudozhni
+ */
+
+#include "wotch.h"
+#include <string.h>
+#include "menu.h"
+#include "sh1106.h"
+#include "m41t62.h"
+#include "lcd.h"
+#include "kx023.h"
+
+
+extern ADC_HandleTypeDef hadc1;
+extern wotch_struct wotch1;
+
+void wotch_init(wotch_struct *wotch)
+{
+	wotch->vbat = 0.0;
+	wotch->button_pressed = 0;
+	wotch->display_mode = MAIN_MODE;
+	wotch->current_menu = NULL;
+	wotch->writing_lcd =0;
+	wotch->read_time = &m41t62_read_time;
+	wotch->write_time = &m41t62_set_time;
+	wotch->redraw = &SH1106_write_frame;
+	memset(wotch->lcd_frame_buffer,0x00,1024);
+};
+
+void read_bat_voltage(void){
+	__IO uint16_t temp;
+
+	GPIOH->BSRR = GPIO_PIN_0;
+	HAL_Delay(10);
+	HAL_ADC_Start(&hadc1);
+
+	if (HAL_ADC_PollForConversion(&hadc1, 10) != HAL_OK)
+		Error_Handler();
+	else
+		temp = HAL_ADC_GetValue(&hadc1);
+
+	GPIOH->BRR = GPIO_PIN_0;
+};
+
+void manage_buttons(wotch_struct *wotch){
+	uint8_t temp=0;
+	uint8_t temp1=0;
+
+	switch (wotch->button_pressed)
+	{
+	case 0:
+		break;
+	case DR_BUTTON:
+		if (wotch->display_mode == MAIN_MODE){
+
+		}
+		else if (wotch->display_mode == MENU_MODE)
+		{
+			//return to prev menu
+			if (wotch->current_menu->parent != NULL){
+				wotch->current_menu = wotch->current_menu->parent;
+				wotch->current_menu->fptr(wotch);
+				SH1106_write_frame();
+			}
+			else
+			{//return to MAIN_MODE
+				wotch->display_mode = MAIN_MODE;
+				//draw main screen
+				show_main_screen(wotch);
+			};
+		}
+		else if ((wotch->display_mode == DFU_MODE)||(wotch->display_mode == DATE_SET_MODE)||(wotch->display_mode == TIME_SET_MODE))
+		{
+			wotch->display_mode = MENU_MODE;
+			wotch->write_time();
+			wotch->current_menu = wotch->current_menu->parent;
+			wotch->current_menu->fptr(wotch);
+			wotch->redraw();
+
+		};
+
+		break;
+	case UR_BUTTON:
+		if (wotch->display_mode == MAIN_MODE){
+			//go to MENU_MODE
+			wotch->display_mode = MENU_MODE;
+			//show main menu
+			wotch->current_menu->fptr(wotch);
+			SH1106_write_frame();
+		}
+		else if (wotch->display_mode == MENU_MODE)
+		{
+			//open chosen sub-menu
+			temp = wotch->current_menu->current_choice;
+			wotch->current_menu = wotch->current_menu->members[temp];
+			wotch->current_menu->fptr(wotch);
+			wotch->redraw();
+
+		}
+		else if (wotch->display_mode == DFU_MODE)
+		{
+			NVIC_SystemReset();
+		}
+		else if (wotch->display_mode == TIME_SET_MODE)
+		{
+			if (wotch->current_menu->current_choice == 3)
+				wotch->current_menu->current_choice =0;
+			else
+				wotch->current_menu->current_choice +=1;
+			lcd_put_time_str(wotch);
+			wotch->redraw();
+		}
+		else if (wotch->display_mode == DATE_SET_MODE)
+		{
+			if (wotch->current_menu->current_choice == 5)
+				wotch->current_menu->current_choice =0;
+			else
+				wotch->current_menu->current_choice +=1;
+			lcd_put_date_str(wotch);
+			wotch->redraw();
+		};
+		break;
+
+	case GPIO_PIN_7:
+
+		break;
+	case GPIO_PIN_8:
+		//square wave input 1s period
+		wotch->cur_time.seconds++;
+		break;
+	case T2_BUTTON:
+
+		break;
+	case DL_BUTTON:
+		if (wotch->display_mode == MAIN_MODE)
+		{
+
+		}
+		else if (wotch->display_mode == MENU_MODE)
+		{
+			menu_next(wotch);
+			wotch->redraw();
+		}
+		else if (wotch->display_mode == TIME_SET_MODE)
+		{
+			switch (wotch->current_menu->current_choice)
+			{
+			case 0:
+				if (wotch->cur_time.bcd10hours==0)
+					wotch->cur_time.bcd10hours=2;
+				else
+					wotch->cur_time.bcd10hours--;
+				break;
+			case 1:
+
+				if (wotch->cur_time.bcd1hours==0)
+					wotch->cur_time.bcd1hours=9;
+				else
+					wotch->cur_time.bcd1hours--;
+				break;
+			case 2:
+				if (wotch->cur_time.bcd10minutes==0)
+					wotch->cur_time.bcd10minutes=5;
+				else
+					wotch->cur_time.bcd10minutes--;
+				break;
+			case 3:
+				if (wotch->cur_time.bcd1minutes==0)
+					wotch->cur_time.bcd1minutes=9;
+				else
+					wotch->cur_time.bcd1minutes--;
+				break;
+			};
+			lcd_put_time_str(wotch);
+			wotch->redraw();
+		}
+		else if (wotch->display_mode == DATE_SET_MODE)
+		{
+			switch (wotch->current_menu->current_choice)
+			{
+			case 0:
+				if (wotch->cur_time.bcd10hours==0)
+					wotch->cur_time.bcd10hours=2;
+				else
+					wotch->cur_time.bcd10hours--;
+				break;
+			case 1:
+
+				if (wotch->cur_time.bcd1hours==0)
+					wotch->cur_time.bcd1hours=9;
+				else
+					wotch->cur_time.bcd1hours--;
+				break;
+			case 2:
+				if (wotch->cur_time.bcd10minutes==0)
+					wotch->cur_time.bcd10minutes=5;
+				else
+					wotch->cur_time.bcd10minutes--;
+				break;
+			case 3:
+				if (wotch->cur_time.bcd1minutes==0)
+					wotch->cur_time.bcd1minutes=9;
+				else
+					wotch->cur_time.bcd1minutes--;
+				break;
+			};
+			lcd_put_date_str(wotch);
+			wotch->redraw();
+		};
+		break;
+	case UL_BUTTON:
+		if (wotch->display_mode == MAIN_MODE)
+		{
+
+		}
+		else if (wotch->display_mode == MENU_MODE)
+		{
+			menu_prev(wotch);
+			wotch->redraw();
+		}
+		else if (wotch->display_mode == TIME_SET_MODE)
+		{
+			switch (wotch->current_menu->current_choice)
+			{
+			case 0:
+				wotch->cur_time.bcd10hours++;
+				if (wotch->cur_time.bcd10hours==3)
+					wotch->cur_time.bcd10hours=0;
+				break;
+			case 1:
+				wotch->cur_time.bcd1hours++;
+				if (wotch->cur_time.bcd1hours==10)
+					wotch->cur_time.bcd1hours=0;
+				break;
+			case 2:
+				wotch->cur_time.bcd10minutes++;
+				if (wotch->cur_time.bcd10minutes==6)
+					wotch->cur_time.bcd10minutes=0;
+				break;
+			case 3:
+				wotch->cur_time.bcd1minutes++;
+				if (wotch->cur_time.bcd1minutes==10)
+					wotch->cur_time.bcd1minutes=0;
+				break;
+			};
+			lcd_put_time_str(wotch);
+			wotch->redraw();
+		}
+		else if (wotch->display_mode == DATE_SET_MODE)
+		{
+			switch (wotch->current_menu->current_choice)
+			{
+			case 0:
+				wotch->cur_time.bcd10hours++;
+				if (wotch->cur_time.bcd10hours==3)
+					wotch->cur_time.bcd10hours=0;
+				break;
+			case 1:
+				wotch->cur_time.bcd1hours++;
+				if (wotch->cur_time.bcd1hours==10)
+					wotch->cur_time.bcd1hours=0;
+				break;
+			case 2:
+				wotch->cur_time.bcd10minutes++;
+				if (wotch->cur_time.bcd10minutes==6)
+					wotch->cur_time.bcd10minutes=0;
+				break;
+			case 3:
+				wotch->cur_time.bcd1minutes++;
+				if (wotch->cur_time.bcd1minutes==10)
+					wotch->cur_time.bcd1minutes=0;
+				break;
+			};
+			lcd_put_date_str(wotch);
+			wotch->redraw();
+		};
+		break;
+	case T1_BUTTON:
+
+		break;
+	case ACC_INT1_PIN:
+			temp = kx023_read_reg(INS2);
+			temp1 = kx023_read_reg(INS1);
+			kx023_read_reg(INT_REL);
+
+
+		break;
+	};
+
+
+
+	wotch->button_pressed = 0;
+};
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+	wotch1.button_pressed = (uint16_t)GPIO_Pin;
+};
+
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+	HAL_GPIO_TogglePin(UL_LED_PORT,UL_LED);
+};
+
