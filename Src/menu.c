@@ -34,7 +34,7 @@ MENU_line date_line = {4,"Date"};
 MENU_line apps_line = {4,"Apps"};
 MENU_line accel_tap_test_line = {15,"Accel. tap test"};
 MENU_line accel_tilt_test_line = {16,"Accel. tilt test"};
-MENU_line set2_line = {9,"Settings2"};
+MENU_line acc_settings_line = {13,"Acc. settings"};
 
 
 MENU_line alarm_line = {6,"Alarms"};
@@ -47,9 +47,9 @@ MENU_line STATUS_line = {6,"Status"};
 MENU time_menu = { &menu_set_time,4,0,{NULL,NULL,NULL,NULL,NULL,NULL,NULL},&set_time_menu,&time_line};
 MENU date_menu = { &menu_set_date,6,0,{NULL,NULL,NULL,NULL,NULL,NULL,NULL},&set_time_menu,&date_line};
 MENU set_time_menu = { &show_menu,2,0,{&time_menu,&date_menu,NULL,NULL,NULL,NULL,NULL},&settings_menu,&set_time_line};
-MENU set2_menu = { &show_menu,0,0,{NULL,NULL,NULL,NULL,NULL,NULL,NULL},&settings_menu,&set2_line};
+MENU acc_set_menu = { &show_menu,0,0,{NULL,NULL,NULL,NULL,NULL,NULL,NULL},&settings_menu,&acc_settings_line};
 
-MENU settings_menu = { &show_menu,2,0,{&set_time_menu,&set2_menu,NULL,NULL,NULL,NULL,NULL},&main_menu,&set_line};
+MENU settings_menu = { &show_menu,2,0,{&set_time_menu,&acc_set_menu,NULL,NULL,NULL,NULL,NULL},&main_menu,&set_line};
 MENU accel_tap_test = {&run_tap_test, 0,0,{NULL,NULL,NULL,NULL,NULL,NULL,NULL},&apps_menu,&accel_tap_test_line};
 MENU accel_tilt_test = {&run_tilt_test, 0,0,{NULL,NULL,NULL,NULL,NULL,NULL,NULL},&apps_menu,&accel_tilt_test_line};
 MENU apps_menu = {&show_menu,3,0,{&accel_tap_test,&accel_tilt_test,NULL,NULL,NULL,NULL,NULL},&main_menu,&apps_line}; // Applications menu
