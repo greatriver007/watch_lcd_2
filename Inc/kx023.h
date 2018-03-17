@@ -89,9 +89,50 @@
 #define		TAP_EVENT_SINGLE_TAP 0x04
 #define		TAP_EVENT_DOUBLE_TAP 0x08
 
+typedef struct acc_struct{
+	uint16_t filt_xdata;
+	uint16_t filt_ydata;
+	uint16_t filt_zdata;
+	uint16_t xdata;
+	uint16_t ydata;
+	uint16_t zdata;
+	uint8_t curr_tilt;	//TSCP
+	uint8_t prev_tilt;	//TSPP
+	uint8_t tap_dir;	//INS1
+	uint8_t int_source;	//INS2
+	uint8_t wum_dir;	//INS3
+	uint8_t status; //STATUS
+	uint8_t ctl1;   //CNTL1
+	uint8_t ctl2;   //CNTL2
+	uint8_t ctl3;   //CNTL3
+	uint8_t out_ctl; //ODCNTL
+	uint8_t tilt_timer; //TILT_TIMER
+	uint8_t WUM_mask; //WUFC
+	uint8_t s_tap_en; //TDTRC
+	uint8_t d_tap_en; //TDTRC
+	uint8_t delta_tap; //TDTC (0x78)
+	uint8_t tap_level_high_thr; //TTH (0xCB)
+	uint8_t tap_level_low_thr; //TTL (0x1A)
+	uint8_t tap_dur_low_thr; //FTD (0xA2)
+	uint8_t tap_dur_high_thr; //FTD
+	uint8_t both_taps_length; //STD (0x24)
+	uint8_t tap_scan_length; //TLT (0x28)
+	uint8_t max_tap_length; //TWS (0xA0)
+	uint8_t WUM_thr; //ATH (0x08)
+	uint8_t tilt_low_thr; //TILT_ANGLE_LL
+	uint8_t tilt_high_thr; //TILT_ANGLE_HL
+	uint8_t nsamp_avg; //LP_CNTL (0x4B)
+	uint8_t buf_thr; //BUF_CNTL1
+	uint8_t buf_level; //BUF_STATUS_1
+
+};
+
 int kx023_init(void);
 int kx023_command(uint8_t addr, uint8_t val);
 uint8_t kx023_read_reg(uint8_t addr);
+void kx023_int1_config(uint8_t int_en, uint8_t int_pol, uint8_t int_mask);
+void kx023_int2_config(uint8_t int_en, uint8_t int_pol, uint8_t int_mask);
+void kx023_buf_config(uint8_t buf_en, uint8_t watermark_level, uint8_t resolution, uint8_t buf_mode);
 void kx023_standby(void);
 void kx023_wake(void);
 

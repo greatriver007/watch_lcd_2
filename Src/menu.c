@@ -13,6 +13,7 @@ extern wotch_struct wotch1;
 MENU main_menu;
 MENU settings_menu;
 MENU set_time_menu;
+MENU acc_set_menu;
 MENU set2_menu;
 MENU item1_menu;
 MENU item2_menu;
@@ -60,7 +61,7 @@ MENU item4_menu = { &show_menu,0,0,{NULL,NULL,NULL,NULL,NULL,NULL,NULL},&main_me
 MENU dfu_menu = { &show_dfu_message,0,0,{NULL,NULL,NULL,NULL,NULL,NULL,NULL},&main_menu,&DFU_line};
 MENU status_menu = { &show_status,0,0,{NULL,NULL,NULL,NULL,NULL,NULL,NULL},&main_menu,&STATUS_line};
 
-MENU main_menu = {&show_menu,7,0,{&settings_menu, &alarms_menu,&apps_menu,&item3_menu,&item4_menu,&dfu_menu,&status_menu},NULL,&main_line};
+MENU main_menu = {&show_menu,4,0,{&settings_menu, &apps_menu,&dfu_menu,&status_menu},NULL,&main_line};
 
 void show_menu(wotch_struct *wotch){
 

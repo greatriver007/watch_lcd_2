@@ -56,7 +56,6 @@ uint16_t read_bat_voltage(void){
 void manage_taps_and_tilts(wotch_struct *wotch)
 {
 
-
 };
 
 void manage_buttons(wotch_struct *wotch){

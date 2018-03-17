@@ -60,6 +60,17 @@ uint8_t kx023_read_reg(uint8_t addr)
 
 	return RxData;
 };
+
+void kx023_int1_config(uint8_t int_en, uint8_t int_pol, uint8_t int_mask){
+
+};
+void kx023_int2_config(uint8_t int_en, uint8_t int_pol, uint8_t int_mask){
+
+};
+void kx023_buf_config(uint8_t buf_en, uint8_t watermark_level, uint8_t resolution, uint8_t buf_mode){
+
+};
+
 void kx023_standby(void)
 {
 	uint8_t temp = 0;
