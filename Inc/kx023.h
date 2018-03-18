@@ -125,7 +125,7 @@ typedef struct acc_struct{
 	uint8_t buf_thr; //BUF_CNTL1
 	uint8_t buf_level; //BUF_STATUS_1
 
-};
+}acc_struct;
 
 int kx023_init(void);
 int kx023_command(uint8_t addr, uint8_t val);

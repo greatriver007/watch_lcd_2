@@ -38,6 +38,9 @@ void show_dfu_message(wotch_struct *wotch);
 void show_status(wotch_struct *wotch);
 void menu_set_time(wotch_struct * wotch);
 void menu_set_date(wotch_struct * wotch);
-
+void menu_set_tilt(wotch_struct * wotch);
+void menu_set_tap(wotch_struct * wotch);
+void menu_set_wum(wotch_struct * wotch);
+void menu_set_buf(wotch_struct * wotch);
 void test(void);
 #endif /* MENU_H_ */
