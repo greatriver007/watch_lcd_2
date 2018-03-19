@@ -15,6 +15,8 @@
 
 #define USE_STOP_MODE 1
 
+//#define USE_ACC_UI
+
 #define USE_ACCEL_TAP	1
 #define USE_ACCEL_TILT	1
 #define USE_ACCEL_WOM	1
@@ -95,10 +97,12 @@ typedef struct wotch_struct{
 	uint8_t acc_int;
 	uint8_t acc_event;
 	uint8_t tap_data;
+	uint8_t use_acc_ui;
 	uint8_t measure_bat_voltage;
 	float vbat;
 	uint8_t lcd_frame_buffer[1024];
 	struct MENU * current_menu;
+	uint8_t menu_level;
 	void (*read_time)();
 	void (*write_time)();
 	int (*redraw)();

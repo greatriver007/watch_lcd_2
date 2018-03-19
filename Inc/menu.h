@@ -28,7 +28,7 @@ typedef struct MENU{
 }MENU;
 
 
-
+void menu_manager(wotch_struct *wotch);
 void show_menu(wotch_struct *wotch);
 void menu_next(wotch_struct *wotch);
 void menu_prev(wotch_struct *wotch);

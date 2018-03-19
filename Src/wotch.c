@@ -25,11 +25,13 @@ void wotch_init(wotch_struct *wotch)
 	wotch->acc_int = 0;
 	wotch->acc_event = 0;
 	wotch->tap_data = 0;
+	wotch->use_acc_ui = 0;
 	wotch->measure_bat_voltage = 0;
 	wotch->button_pressed = 0;
 	wotch->display_mode = MAIN_MODE;
 	wotch->current_menu = NULL;
 	//wotch->current_menu = &main_menu;
+	wotch->menu_level = 0;
 	wotch->writing_lcd =0;
 	wotch->read_time = &m41t62_read_time;
 	wotch->write_time = &m41t62_set_time;

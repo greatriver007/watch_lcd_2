@@ -10,6 +10,8 @@
 
 #include "stm32l4xx_hal.h"
 
+
+
 #define ACC_CS_PIN 0x8000  //GPIOA
 #define ACC_INT1_PIN GPIO_PIN_6  //GPIOB
 #define ACC_INT2_PIN GPIO_PIN_7	 //GPIOB
