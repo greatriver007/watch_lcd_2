@@ -51,57 +51,12 @@ MENU main_menu = {&show_menu,4,0,{&settings_menu, &apps_menu,&dfu_menu,&status_m
 			MENU wum_set_menu = {&menu_set_wum,0,0,{NULL,NULL,NULL,NULL,NULL,NULL,NULL},&acc_set_menu,&acc_wum_line};
 			MENU buf_set_menu = {&menu_set_buf,0,0,{NULL,NULL,NULL,NULL,NULL,NULL,NULL},&acc_set_menu,&acc_buf_line};
 	MENU apps_menu = {&show_menu,2,0,{&accel_tap_test,&accel_tilt_test,NULL,NULL,NULL,NULL,NULL},&main_menu,&apps_line}; // Applications menu
-		MENU accel_tap_test = {&run_tap_test, 0,0,{NULL,NULL,NULL,NULL,NULL,NULL,NULL},&apps_menu,&accel_tap_test_line};
-		MENU accel_tilt_test = {&run_tilt_test, 0,0,{NULL,NULL,NULL,NULL,NULL,NULL,NULL},&apps_menu,&accel_tilt_test_line};
+		MENU accel_tap_test = {&run_tap_app, 0,0,{NULL,NULL,NULL,NULL,NULL,NULL,NULL},&apps_menu,&accel_tap_test_line};
+		MENU accel_tilt_test = {&run_tilt_app, 0,0,{NULL,NULL,NULL,NULL,NULL,NULL,NULL},&apps_menu,&accel_tilt_test_line};
 	MENU dfu_menu = { &show_dfu_message,0,0,{NULL,NULL,NULL,NULL,NULL,NULL,NULL},&main_menu,&DFU_line};
 
 	MENU status_menu = { &show_status,0,0,{NULL,NULL,NULL,NULL,NULL,NULL,NULL},&main_menu,&STATUS_line};
 
-void menu_manager(wotch_struct *wotch){
-	uint8_t temp=0;
-
-#ifdef USE_ACC_UI
-// manage interrupts from accelerometer
-	if (wotch->use_acc_ui)
-	{
-
-
-	}
-#endif
-
-	if (wotch->button_pressed & UR_BUTTON)
-	{
-		wotch->autosleep = 0;
-		// here is a response to Up-Right button (ENTER) press
-		//if (wotch->menu_level == 0)
-		temp = wotch->current_menu->current_choice;
-		wotch->current_menu = wotch->current_menu->members[temp];
-		wotch->current_menu->fptr(wotch);
-		wotch->redraw();
-		wotch->button_pressed &= ~ UR_BUTTON;
-	};
-	if (wotch->button_pressed & DR_BUTTON)
-	{
-		wotch->autosleep = 0;
-		// here is a response to Down-Right button (BACK) press
-
-		wotch->button_pressed &= ~ DR_BUTTON;
-	};
-	if (wotch->button_pressed & UL_BUTTON)
-	{
-		wotch->autosleep = 0;
-		// here is a response to Up-Left button (UP) press
-
-		wotch->button_pressed &= ~ UL_BUTTON;
-	};
-	if (wotch->button_pressed & DL_BUTTON)
-	{
-		wotch->autosleep = 0;
-		// here is a response to Down-Left button (DOWN) press
-
-		wotch->button_pressed &= ~ DL_BUTTON;
-	};
-};
 
 void show_menu(wotch_struct *wotch){
 
@@ -134,11 +89,6 @@ void menu_prev(wotch_struct *wotch){
 	lcd_menu_arrow(wotch,wotch->current_menu->current_choice);
 };
 
-void menu_init(wotch_struct *wotch){
-
-	wotch->current_menu = &main_menu;
-};
-
 void test(void){
 	show_menu(&wotch1);
 	wotch1.current_menu = &main_menu;
@@ -155,61 +105,5 @@ void show_main_screen(wotch_struct *wotch)
 	lcd_update_time(wotch);
 	lcd_draw_sec_bar(wotch);
 	wotch->redraw();
-};
-
-void show_dfu_message(wotch_struct *wotch)
-{
-	wotch->display_mode = DFU_MODE;
-	lcd_write_menu_line(wotch,&DFU_msg,0);
-	for (uint8_t k=1;k<7;k++)
-		lcd_write_menu_line(wotch,NULL,k);
-
-	lcd_menu_arrow(wotch,0);
-
-};
-
-void show_status(wotch_struct *wotch)
-{
-	wotch->display_mode = STATUS_MODE;
-	lcd_write_menu_line(wotch,&BAT_msg,0);
-	for (uint8_t k=1;k<7;k++)
-		lcd_write_menu_line(wotch,NULL,k);
-	lcd_write_float(wotch, wotch->vbat,12,0);
-};
-
-void menu_set_time(wotch_struct * wotch)
-{
-	lcd_clear(wotch);
-	wotch->display_mode = TIME_SET_MODE;
-	wotch->read_time(wotch);
-	lcd_put_time_str(wotch);
-
-};
-
-void menu_set_date(wotch_struct * wotch)
-{
-	lcd_clear(wotch);
-	wotch->display_mode = DATE_SET_MODE;
-	wotch->read_time(wotch);
-	lcd_put_date_str(wotch);
-
-};
-
-void menu_set_tilt(wotch_struct * wotch)
-{
-
-};
-
-void menu_set_tap(wotch_struct * wotch)
-{
-
-};
-void menu_set_wum(wotch_struct * wotch)
-{
-
-};
-void menu_set_buf(wotch_struct * wotch)
-{
-
 };
 

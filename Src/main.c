@@ -140,7 +140,6 @@ int main(void)
 //	htim2.Init.Prescaler = uhPrescalerValue;
 //	HAL_TIM_Base_Init(&htim2);
 	wotch_init(&wotch1);		// application initialization
-	menu_init(&wotch1);			// menu initialization
 	SH1106_init();				// OLED driver initialization
 	wotch1.redraw();
 	HAL_Delay(100);
@@ -179,18 +178,19 @@ vrefint_cal= *((uint16_t*)VREFINT_CAL_ADDR); // read VREFINT_CAL_ADDR memory loc
 //  };
 //
 
-/* PWR STOP 2 testing */
+/* PWR mode STOP 2 testing */
   /* Enable Power Clock */
   __HAL_RCC_PWR_CLK_ENABLE();
   __HAL_RCC_WAKEUPSTOP_CLK_CONFIG(RCC_STOP_WAKEUPCLOCK_MSI); // Ensure that MSI is wake-up system clock
+/* PWR mode STOP 2 testing */
 
-/* PWR STOP 2 testing */
   while (1)
   {
-
-	manage_buttons(&wotch1);
-	manage_taps_and_tilts(&wotch1);
-	if (wotch1.measure_bat_voltage)
+	second_int_manager(&wotch1); // manages 1sec period interrupts from RTC. Should run in parallel to all other apps
+	wotch1.active_manager(&wotch1); // current active process (main screen, menu, end apps)
+	//manage_buttons(&wotch1);
+	//manage_taps_and_tilts(&wotch1);
+	if (wotch1.measure_bat_voltage) // battery voltage measurement every 1 second
 	{
 		//HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED);
 		uint32_t a = (uint32_t)read_bat_voltage();
@@ -202,13 +202,13 @@ vrefint_cal= *((uint16_t*)VREFINT_CAL_ADDR); // read VREFINT_CAL_ADDR memory loc
 //	{
 //		USB_decode_command();
 //	};
-//	  HAL_Delay(20);
+
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
 
 
-/* PWR STOP 2 testing */
+/* PWR mode STOP 2 testing */
 #if USE_STOP_MODE 
 	if ((wotch1.autosleep > 10000)&&(wotch1.use_autosleep))
 	{
@@ -216,7 +216,7 @@ vrefint_cal= *((uint16_t*)VREFINT_CAL_ADDR); // read VREFINT_CAL_ADDR memory loc
 		go_into_stop2_mode();
 	};
 #endif
-/* PWR STOP 2 testing */
+/* PWR mode STOP 2 testing */
 
   }
   /* USER CODE END 3 */

@@ -27,20 +27,22 @@ typedef struct MENU{
 
 }MENU;
 
+extern MENU mainscreen;
+extern MENU main_menu;
+extern MENU settings_menu;
+extern MENU set_time_menu,time_menu,date_menu;
+extern MENU acc_set_menu,tilt_set_menu,tap_set_menu,wum_set_menu,buf_set_menu;
+extern MENU dfu_menu;
+extern MENU apps_menu, accel_tap_test,accel_tilt_test;
+extern MENU status_menu;
 
-void menu_manager(wotch_struct *wotch);
+extern MENU_line BAT_msg;
+extern MENU_line DFU_msg;
+extern MENU_line STATUS_msg;
+
 void show_menu(wotch_struct *wotch);
 void menu_next(wotch_struct *wotch);
 void menu_prev(wotch_struct *wotch);
-void menu_init(wotch_struct *wotch);
 void show_main_screen(wotch_struct *wotch);
-void show_dfu_message(wotch_struct *wotch);
-void show_status(wotch_struct *wotch);
-void menu_set_time(wotch_struct * wotch);
-void menu_set_date(wotch_struct * wotch);
-void menu_set_tilt(wotch_struct * wotch);
-void menu_set_tap(wotch_struct * wotch);
-void menu_set_wum(wotch_struct * wotch);
-void menu_set_buf(wotch_struct * wotch);
 void test(void);
 #endif /* MENU_H_ */

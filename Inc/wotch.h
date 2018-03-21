@@ -105,20 +105,35 @@ typedef struct wotch_struct{
 	uint8_t menu_level;
 	void (*read_time)();
 	void (*write_time)();
+	void (*active_manager)();
 	int (*redraw)();
+
 
 } wotch_struct;
 
 void wotch_init(wotch_struct *wotch);
 
 uint16_t read_bat_voltage(void);
+
+void menu_manager(wotch_struct *wotch);
+
+void show_dfu_message(wotch_struct *wotch);
+void dfu_manager(wotch_struct *wotch);
 void manage_buttons(wotch_struct *wotch);
 void manage_taps_and_tilts(wotch_struct *wotch);
-void run_tap_test(wotch_struct *wotch);
-void run_tilt_test(wotch_struct *wotch);
-void stop_tap_test(wotch_struct *wotch);
-void stop_tilt_test(wotch_struct *wotch);
+void run_tap_app(wotch_struct *wotch);
+void acc_tap_app(wotch_struct *wotch);
+void run_tilt_app(wotch_struct *wotch);
+void acc_tilt_app(wotch_struct *wotch);
+void show_status(wotch_struct *wotch);
+void menu_set_time(wotch_struct * wotch);
+void menu_set_date(wotch_struct * wotch);
+void menu_set_tilt(wotch_struct * wotch);
+void menu_set_tap(wotch_struct * wotch);
+void menu_set_wum(wotch_struct * wotch);
+void menu_set_buf(wotch_struct * wotch);
 
+void second_int_manager(wotch_struct *wotch);
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin);
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim);
 void HAL_SYSTICK_Callback(void);

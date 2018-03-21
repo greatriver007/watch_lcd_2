@@ -140,6 +140,6 @@ void kx023_wake(void);
 
 void kx023_WUM_setup(void);
 void kx023_TAP_setup(void);
-
+void kx023_TILT_setup(void);
 
 #endif /* KX023_H_ */

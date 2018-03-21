@@ -140,3 +140,7 @@ void kx023_TAP_setup(void)
 	kx023_command(CNTL1, TAP_EN + HRES_EN + MAX_2G + RUN);
 
 };
+
+void kx023_TILT_setup(void){
+
+};

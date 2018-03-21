@@ -29,13 +29,14 @@ void wotch_init(wotch_struct *wotch)
 	wotch->measure_bat_voltage = 0;
 	wotch->button_pressed = 0;
 	wotch->display_mode = MAIN_MODE;
-	wotch->current_menu = NULL;
+	wotch->current_menu = &mainscreen;
 	//wotch->current_menu = &main_menu;
 	wotch->menu_level = 0;
 	wotch->writing_lcd =0;
 	wotch->read_time = &m41t62_read_time;
 	wotch->write_time = &m41t62_set_time;
 	wotch->redraw = &SH1106_write_frame;
+	wotch->active_manager = &menu_manager;
 	memset(wotch->lcd_frame_buffer,0x00,1024);
 };
 
@@ -67,55 +68,6 @@ void manage_buttons(wotch_struct *wotch){
 	//temp1 = wotch->autosleep;
 	//wotch->autosleep = 0;
 
-
-	if (wotch->button_pressed & DR_BUTTON)
-	{
-		if (wotch->display_mode == MAIN_MODE){
-
-		}
-		else if (wotch->display_mode == MENU_MODE)
-		{
-			//return to prev menu
-			if (wotch->current_menu->parent != NULL){
-				wotch->current_menu = wotch->current_menu->parent;
-				wotch->current_menu->fptr(wotch);
-				SH1106_write_frame();
-			}
-			else
-			{//return to MAIN_MODE
-				wotch->display_mode = MAIN_MODE;
-				//draw main screen
-				show_main_screen(wotch);
-			};
-		}
-		else if ((wotch->display_mode == DFU_MODE)||(wotch->display_mode == DATE_SET_MODE)||(wotch->display_mode == TIME_SET_MODE))
-		{
-			wotch->display_mode = MENU_MODE;
-			wotch->write_time();
-			wotch->current_menu = wotch->current_menu->parent;
-			wotch->current_menu->fptr(wotch);
-			wotch->redraw();
-
-		}
-		else if (wotch->display_mode == STATUS_MODE)
-		{
-			wotch->display_mode = MENU_MODE;
-			wotch->current_menu = wotch->current_menu->parent;
-			wotch->current_menu->fptr(wotch);
-			wotch->redraw();
-		}
-		else if (wotch->display_mode == TAP_TEST_MODE)
-		{
-			stop_tap_test(wotch);
-			wotch->display_mode = MENU_MODE;
-			wotch->current_menu = wotch->current_menu->parent;
-			wotch->current_menu->fptr(wotch);
-			wotch->redraw();
-		};
-
-		wotch->autosleep = 0;
-		wotch->button_pressed &= ~DR_BUTTON;
-	};
 
 	if (wotch->button_pressed & UR_BUTTON)
 	{
@@ -166,39 +118,7 @@ void manage_buttons(wotch_struct *wotch){
 		wotch->button_pressed &= ~ GPIO_PIN_7;
 	};
 
-	if (wotch->button_pressed & GPIO_PIN_8)
-	{
-		//square wave input 1s period
-		wotch->measure_bat_voltage = 1;
-		wotch->cur_time.seconds++;
-		if (wotch->cur_time.seconds > 59)
-		{
-			wotch->cur_time.seconds = 0;
-			wotch->cur_time.minutes++;
-			if (wotch->cur_time.minutes > 59)
-			{
-				wotch->cur_time.minutes = 0;
-				wotch->cur_time.hours++;
-				if (wotch->cur_time.hours > 23)
-				{
-					wotch->cur_time.hours = 0;
-					wotch->read_time();
-				};
-			};
 
-		};
-
-		if (wotch->display_mode == MAIN_MODE){
-			wotch->read_time();
-			lcd_clear(wotch);
-			lcd_put_date(wotch);
-			lcd_update_time(wotch);
-			lcd_draw_sec_bar(wotch);
-			wotch->redraw();
-		};
-		//wotch->autosleep += temp1;
-		wotch->button_pressed &= ~GPIO_PIN_8;
-	};
 	if (wotch->button_pressed & T2_BUTTON)
 	{
 		wotch->autosleep = 0;
@@ -430,24 +350,265 @@ void manage_buttons(wotch_struct *wotch){
 	};
 };
 
-void run_tap_test(wotch_struct *wotch){
+void show_dfu_message(wotch_struct *wotch)
+{
+	wotch->active_manager = &dfu_manager;
+	lcd_write_menu_line(wotch,&DFU_msg,0);
+	for (uint8_t k=1;k<7;k++)
+		lcd_write_menu_line(wotch,NULL,k);
 
-	wotch->display_mode = TAP_TEST_MODE;
+	lcd_menu_arrow(wotch,0);
+
+};
+void dfu_manager(wotch_struct *wotch){
+
+	if (wotch->button_pressed & UR_BUTTON)
+	{
+		// here is a response to Up-Right button (ENTER) press
+		NVIC_SystemReset();											// do system reset followed by bootloader mode
+	};
+	if (wotch->button_pressed & DR_BUTTON)
+	{
+		wotch->autosleep = 0;
+		// here is a response to Down-Right button (BACK) press
+		wotch->current_menu = wotch->current_menu->parent;			// set parent menu as current menu
+		wotch->current_menu->fptr(wotch);							// run associated function (show_menu() or show_main_screen())
+		wotch->redraw();											// refresh lcd
+		wotch->active_manager = &menu_manager;						// go back to menu manager
+		wotch->button_pressed &= ~ DR_BUTTON;						// reset flag for this button
+	};
+};
+
+void run_tap_app(wotch_struct *wotch){
+
+	lcd_clear(wotch);
+	wotch->redraw();
+	kx023_TAP_setup();
+	wotch->active_manager = acc_tap_app;
 	wotch->use_autosleep = 0;
 };
 
-void run_tilt_test(wotch_struct *wotch){
+void acc_tap_app(wotch_struct *wotch){
+// This is a function that implements an accelerometer tap/double_tap feature test. It intercepts the accelerometer interrupt,
+// reads the source, and displays the detected event - (S-single,D-double)(x,y,z-axis)(+/- direction)
+	if (wotch->button_pressed & ACC_INT1_PIN)
+	{
+		wotch->acc_event = kx023_read_reg(INS2);
+		wotch->tap_data = kx023_read_reg(INS1);
+		kx023_read_reg(INT_REL);
+		if (wotch->display_mode == TAP_TEST_MODE)
+		{
+			lcd_clear(wotch);
+			if ((wotch->acc_event)&TAP_EVENT_SINGLE_TAP)
+				lcd_write_char(wotch,0,0,'S');
+			if ((wotch->acc_event)&TAP_EVENT_DOUBLE_TAP)
+				lcd_write_char(wotch,0,0,'D');
+			if ((wotch->tap_data)&0x20)
+			{
+				lcd_write_char(wotch,0,1,'X');
+				lcd_write_char(wotch,0,2,'-');
+			};
+			if ((wotch->tap_data)&0x10)
+			{
+				lcd_write_char(wotch,0,1,'X');
+				lcd_write_char(wotch,0,2,'+');
+			};
+			if ((wotch->tap_data)&0x08)
+			{
+				lcd_write_char(wotch,0,1,'Y');
+				lcd_write_char(wotch,0,2,'-');
+			};
+			if ((wotch->tap_data)&0x04)
+			{
+				lcd_write_char(wotch,0,1,'Y');
+				lcd_write_char(wotch,0,2,'+');
+			};
+			if ((wotch->tap_data)&0x02)
+			{
+				lcd_write_char(wotch,0,1,'Z');
+				lcd_write_char(wotch,0,2,'-');
+			};
+			if ((wotch->tap_data)&0x01)
+			{
+				lcd_write_char(wotch,0,1,'Z');
+				lcd_write_char(wotch,0,2,'+');
+			};
+			wotch->redraw();
+		};
+		wotch->button_pressed &= ~ACC_INT1_PIN;
+	};
+
+	if (wotch->button_pressed & DR_BUTTON)
+	{		// here is a response to Down-Right button (BACK) press. This is the only button being checked in this app to be able to go back to menu
+		wotch->autosleep = 0;
+		wotch->current_menu = wotch->current_menu->parent;			// set parent menu as current menu
+		wotch->current_menu->fptr(wotch);							// run associated function (show_menu() or show_main_screen())
+		wotch->redraw();											// refresh lcd
+		wotch->active_manager = &menu_manager;						// go back to menu manager
+		wotch->use_autosleep = 1;									// allow auto-sleep
+		wotch->button_pressed &= ~ DR_BUTTON;						// reset flag for this button
+	};
+};
+
+void run_tilt_app(wotch_struct *wotch){
+
+	lcd_clear(wotch);
+	wotch->redraw();
+	kx023_TILT_setup();
+	wotch->active_manager = acc_tilt_app;
+	wotch->use_autosleep = 0;
+};
+
+void acc_tilt_app(wotch_struct *wotch){
+
+
+
+	if (wotch->button_pressed & DR_BUTTON)
+	{		// here is a response to Down-Right button (BACK) press. This is the only button being checked in this app to be able to go back to menu
+		wotch->autosleep = 0;
+		wotch->current_menu = wotch->current_menu->parent;			// set parent menu as current menu
+		wotch->current_menu->fptr(wotch);							// run associated function (show_menu() or show_main_screen())
+		wotch->redraw();											// refresh lcd
+		wotch->active_manager = &menu_manager;						// go back to menu manager
+		wotch->use_autosleep = 1;									// allow auto-sleep
+		wotch->button_pressed &= ~ DR_BUTTON;						// reset flag for this button
+	};
+};
+
+void menu_manager(wotch_struct *wotch){
+	// This function implements navigation through menus. It is called from the main loop if chosen as an active manager
+	uint8_t temp=0;
+
+#ifdef USE_ACC_UI
+// manage interrupts from accelerometer
+	if (wotch->use_acc_ui)
+	{
+
+
+	}
+#endif
+
+	if (wotch->button_pressed & UR_BUTTON)
+	{
+		wotch->autosleep = 0;										// reset autosleep counter
+		// here is a response to Up-Right button (ENTER) press
+		//if (wotch->menu_level == 0)
+		temp = wotch->current_menu->current_choice;
+		wotch->current_menu = wotch->current_menu->members[temp];	// set selected menu as current menu
+		wotch->current_menu->fptr(wotch);							// run associated function
+		wotch->redraw();											// refresh lcd
+		wotch->button_pressed &= ~ UR_BUTTON;						// reset flag for this button
+	};
+	if (wotch->button_pressed & DR_BUTTON)
+	{
+		wotch->autosleep = 0;
+		// here is a response to Down-Right button (BACK) press
+		wotch->current_menu = wotch->current_menu->parent;			// set parent menu as current menu
+		wotch->current_menu->fptr(wotch);							// run associated function
+		wotch->redraw();											// refresh lcd
+		wotch->button_pressed &= ~ DR_BUTTON;						// reset flag for this button
+	};
+	if (wotch->button_pressed & UL_BUTTON)
+	{
+		wotch->autosleep = 0;
+		// here is a response to Up-Left button (UP) press
+		menu_prev(wotch);											// select previous menu item
+		wotch->redraw();											// refresh lcd
+		wotch->button_pressed &= ~ UL_BUTTON;						// reset flag for this button
+	};
+	if (wotch->button_pressed & DL_BUTTON)
+	{
+		wotch->autosleep = 0;
+		// here is a response to Down-Left button (DOWN) press
+		menu_next(wotch);											// select next menu item
+		wotch->redraw();											// refresh lcd
+		wotch->button_pressed &= ~ DL_BUTTON;						// reset flag for this button
+	};
+};
+
+void second_int_manager(wotch_struct *wotch){
+
+	if (wotch->button_pressed & GPIO_PIN_8)
+	{
+		//square wave input 1s period
+		wotch->measure_bat_voltage = 1;			// set flag to measure battery voltage every second when active
+		wotch->cur_time.seconds++;
+		if (wotch->cur_time.seconds > 59)
+		{
+			wotch->cur_time.seconds = 0;
+			wotch->cur_time.minutes++;
+			if (wotch->cur_time.minutes > 59)
+			{
+				wotch->cur_time.minutes = 0;
+				wotch->cur_time.hours++;
+				if (wotch->cur_time.hours > 23)
+				{
+					wotch->cur_time.hours = 0;
+					wotch->read_time();
+				};
+			};
+
+		};
+
+		if (wotch->display_mode == MAIN_MODE){
+			wotch->read_time();
+			lcd_clear(wotch);
+			lcd_put_date(wotch);
+			lcd_update_time(wotch);
+			lcd_draw_sec_bar(wotch);
+			wotch->redraw();
+		};
+		//wotch->autosleep += temp1;
+		wotch->button_pressed &= ~GPIO_PIN_8;
+	};
+}
+
+void show_status(wotch_struct *wotch)
+{
+	wotch->display_mode = STATUS_MODE;
+	lcd_write_menu_line(wotch,&BAT_msg,0);
+	for (uint8_t k=1;k<7;k++)
+		lcd_write_menu_line(wotch,NULL,k);
+	lcd_write_float(wotch, wotch->vbat,12,0);
+};
+
+void menu_set_time(wotch_struct * wotch)
+{
+	lcd_clear(wotch);
+	wotch->display_mode = TIME_SET_MODE;
+	wotch->read_time(wotch);
+	lcd_put_time_str(wotch);
 
 };
 
-void stop_tap_test(wotch_struct *wotch){
+void menu_set_date(wotch_struct * wotch)
+{
+	lcd_clear(wotch);
+	wotch->display_mode = DATE_SET_MODE;
+	wotch->read_time(wotch);
+	lcd_put_date_str(wotch);
 
-	wotch->use_autosleep = 1;
 };
 
-void stop_tilt_test(wotch_struct *wotch){
+void menu_set_tilt(wotch_struct * wotch)
+{
 
 };
+
+void menu_set_tap(wotch_struct * wotch)
+{
+
+};
+void menu_set_wum(wotch_struct * wotch)
+{
+
+};
+void menu_set_buf(wotch_struct * wotch)
+{
+
+};
+
+
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
