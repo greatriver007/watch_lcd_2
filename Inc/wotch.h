@@ -13,7 +13,7 @@
 
 #define VERSION 1
 
-#define USE_STOP_MODE 1
+#define USE_STOP_MODE 0
 
 //#define USE_ACC_UI
 

@@ -146,7 +146,7 @@ int main(void)
 
 
 	//show_main_screen(&wotch1);
-	kx023_init();				// accelerometer initialization
+	error = kx023_init();				// accelerometer initialization
     kx023_TAP_setup();
 	m41t62_init(); 				// RTC initialization
 	m41t62_SQW(1);				// start square wave output of RTC clock, GPIOB.8 pin

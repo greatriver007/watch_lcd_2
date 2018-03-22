@@ -69,49 +69,7 @@ void manage_buttons(wotch_struct *wotch){
 	//wotch->autosleep = 0;
 
 
-	if (wotch->button_pressed & UR_BUTTON)
-	{
-		if (wotch->display_mode == MAIN_MODE){
-			//go to MENU_MODE
-			wotch->display_mode = MENU_MODE;
-			//show main menu
-			wotch->current_menu->fptr(wotch);
-			SH1106_write_frame();
-		}
-		else if (wotch->display_mode == MENU_MODE)
-		{
-			//open chosen sub-menu
-			temp = wotch->current_menu->current_choice;
-			wotch->current_menu = wotch->current_menu->members[temp];
-			wotch->current_menu->fptr(wotch);
-			wotch->redraw();
 
-		}
-		else if (wotch->display_mode == DFU_MODE)
-		{
-			NVIC_SystemReset();
-		}
-		else if (wotch->display_mode == TIME_SET_MODE)
-		{
-			if (wotch->current_menu->current_choice == 3)
-				wotch->current_menu->current_choice =0;
-			else
-				wotch->current_menu->current_choice +=1;
-			lcd_put_time_str(wotch);
-			wotch->redraw();
-		}
-		else if (wotch->display_mode == DATE_SET_MODE)
-		{
-			if (wotch->current_menu->current_choice == 5)
-				wotch->current_menu->current_choice =0;
-			else
-				wotch->current_menu->current_choice +=1;
-			lcd_put_date_str(wotch);
-			wotch->redraw();
-		};
-		wotch->autosleep = 0;
-		wotch->button_pressed &= ~ UR_BUTTON;
-	};
 
 	if (wotch->button_pressed & GPIO_PIN_7)
 	{
@@ -302,52 +260,7 @@ void manage_buttons(wotch_struct *wotch){
 		wotch->button_pressed &= ~T1_BUTTON;
 	};
 
-	if (wotch->button_pressed & ACC_INT1_PIN)
-	{
-		wotch->acc_event = kx023_read_reg(INS2);
-		wotch->tap_data = kx023_read_reg(INS1);
-		kx023_read_reg(INT_REL);
-		if (wotch->display_mode == TAP_TEST_MODE)
-		{
-			lcd_clear(wotch);
-			if ((wotch->acc_event)&TAP_EVENT_SINGLE_TAP)
-				lcd_write_char(wotch,0,0,'S');
-			if ((wotch->acc_event)&TAP_EVENT_DOUBLE_TAP)
-				lcd_write_char(wotch,0,0,'D');
-			if ((wotch->tap_data)&0x20)
-			{
-				lcd_write_char(wotch,0,1,'X');
-				lcd_write_char(wotch,0,2,'-');
-			};
-			if ((wotch->tap_data)&0x10)
-			{
-				lcd_write_char(wotch,0,1,'X');
-				lcd_write_char(wotch,0,2,'+');
-			};
-			if ((wotch->tap_data)&0x08)
-			{
-				lcd_write_char(wotch,0,1,'Y');
-				lcd_write_char(wotch,0,2,'-');
-			};
-			if ((wotch->tap_data)&0x04)
-			{
-				lcd_write_char(wotch,0,1,'Y');
-				lcd_write_char(wotch,0,2,'+');
-			};
-			if ((wotch->tap_data)&0x02)
-			{
-				lcd_write_char(wotch,0,1,'Z');
-				lcd_write_char(wotch,0,2,'-');
-			};
-			if ((wotch->tap_data)&0x01)
-			{
-				lcd_write_char(wotch,0,1,'Z');
-				lcd_write_char(wotch,0,2,'+');
-			};
-			wotch->redraw();
-		};
-		wotch->button_pressed &= ~ACC_INT1_PIN;
-	};
+
 };
 
 void show_dfu_message(wotch_struct *wotch)
@@ -384,7 +297,7 @@ void run_tap_app(wotch_struct *wotch){
 	lcd_clear(wotch);
 	wotch->redraw();
 	kx023_TAP_setup();
-	wotch->active_manager = acc_tap_app;
+	wotch->active_manager = &acc_tap_app;
 	wotch->use_autosleep = 0;
 };
 
@@ -396,45 +309,43 @@ void acc_tap_app(wotch_struct *wotch){
 		wotch->acc_event = kx023_read_reg(INS2);
 		wotch->tap_data = kx023_read_reg(INS1);
 		kx023_read_reg(INT_REL);
-		if (wotch->display_mode == TAP_TEST_MODE)
+		lcd_clear(wotch);
+		if ((wotch->acc_event)&TAP_EVENT_SINGLE_TAP)
+			lcd_write_char(wotch,0,0,'S');
+		if ((wotch->acc_event)&TAP_EVENT_DOUBLE_TAP)
+			lcd_write_char(wotch,0,0,'D');
+		if ((wotch->tap_data)&0x20)
 		{
-			lcd_clear(wotch);
-			if ((wotch->acc_event)&TAP_EVENT_SINGLE_TAP)
-				lcd_write_char(wotch,0,0,'S');
-			if ((wotch->acc_event)&TAP_EVENT_DOUBLE_TAP)
-				lcd_write_char(wotch,0,0,'D');
-			if ((wotch->tap_data)&0x20)
-			{
-				lcd_write_char(wotch,0,1,'X');
-				lcd_write_char(wotch,0,2,'-');
-			};
-			if ((wotch->tap_data)&0x10)
-			{
-				lcd_write_char(wotch,0,1,'X');
-				lcd_write_char(wotch,0,2,'+');
-			};
-			if ((wotch->tap_data)&0x08)
-			{
-				lcd_write_char(wotch,0,1,'Y');
-				lcd_write_char(wotch,0,2,'-');
-			};
-			if ((wotch->tap_data)&0x04)
-			{
-				lcd_write_char(wotch,0,1,'Y');
-				lcd_write_char(wotch,0,2,'+');
-			};
-			if ((wotch->tap_data)&0x02)
-			{
-				lcd_write_char(wotch,0,1,'Z');
-				lcd_write_char(wotch,0,2,'-');
-			};
-			if ((wotch->tap_data)&0x01)
-			{
-				lcd_write_char(wotch,0,1,'Z');
-				lcd_write_char(wotch,0,2,'+');
-			};
-			wotch->redraw();
+			lcd_write_char(wotch,0,1,'X');
+			lcd_write_char(wotch,0,2,'-');
 		};
+		if ((wotch->tap_data)&0x10)
+		{
+			lcd_write_char(wotch,0,1,'X');
+			lcd_write_char(wotch,0,2,'+');
+		};
+		if ((wotch->tap_data)&0x08)
+		{
+			lcd_write_char(wotch,0,1,'Y');
+			lcd_write_char(wotch,0,2,'-');
+		};
+		if ((wotch->tap_data)&0x04)
+		{
+			lcd_write_char(wotch,0,1,'Y');
+			lcd_write_char(wotch,0,2,'+');
+		};
+		if ((wotch->tap_data)&0x02)
+		{
+			lcd_write_char(wotch,0,1,'Z');
+			lcd_write_char(wotch,0,2,'-');
+		};
+		if ((wotch->tap_data)&0x01)
+		{
+			lcd_write_char(wotch,0,1,'Z');
+			lcd_write_char(wotch,0,2,'+');
+		};
+		wotch->redraw();
+
 		wotch->button_pressed &= ~ACC_INT1_PIN;
 	};
 
@@ -455,7 +366,7 @@ void run_tilt_app(wotch_struct *wotch){
 	lcd_clear(wotch);
 	wotch->redraw();
 	kx023_TILT_setup();
-	wotch->active_manager = acc_tilt_app;
+	wotch->active_manager = &acc_tilt_app;
 	wotch->use_autosleep = 0;
 };
 
@@ -550,7 +461,7 @@ void second_int_manager(wotch_struct *wotch){
 
 		};
 
-		if (wotch->display_mode == MAIN_MODE){
+		if (wotch->current_menu == &mainscreen){
 			wotch->read_time();
 			lcd_clear(wotch);
 			lcd_put_date(wotch);
@@ -565,6 +476,7 @@ void second_int_manager(wotch_struct *wotch){
 
 void show_status(wotch_struct *wotch)
 {
+	lcd_clear(wotch);
 	wotch->display_mode = STATUS_MODE;
 	lcd_write_menu_line(wotch,&BAT_msg,0);
 	for (uint8_t k=1;k<7;k++)
@@ -623,5 +535,5 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 void HAL_SYSTICK_Callback(void)
 {
 	wotch1.autosleep++;
-}
+};
 
